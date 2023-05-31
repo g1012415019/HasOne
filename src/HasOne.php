@@ -9,12 +9,7 @@ class HasOne
     /**
      * 不可以改
      */
-    const CACHE_KEY = "i:f:%s:%s:_";
-
-    /**
-     * 缓存版本号，调整这个版本号后，所有属性的查询都会重新走db
-     */
-    const CACHE_KEY_VERSION = "v1";
+    const CACHE_KEY = "%s:_";
 
     protected $cacheExpire = 86400;
 
@@ -55,7 +50,7 @@ class HasOne
      */
     private function getCacheKey(): string
     {
-        return sprintf(self::CACHE_KEY, $this->name, self::CACHE_KEY_VERSION);
+        return sprintf(self::CACHE_KEY, $this->name);
     }
 
     /**
@@ -63,9 +58,9 @@ class HasOne
      * @param $key
      * @return string
      */
-    private function getUniqueKey($id, $key): string
+    private function getUniqueKey($id, $key, $cacheVersion): string
     {
-        return $this->getCacheKey() . "{$id}:_" . $key;
+        return $this->getCacheKey() . "{$id}:_" . $key . ":_" . $cacheVersion;
     }
 
     /**
@@ -119,7 +114,8 @@ class HasOne
      */
     public function forgetCache(int $id, $attr)
     {
-        $this->cache->forget($this->getUniqueKey($id, $attr));
+        $factory = Factory::analysis($this->drive, $attr);
+        $this->cache->forget($this->getUniqueKey($id, $attr,$factory->geCacheVersion()));
     }
 
     /**
@@ -132,7 +128,8 @@ class HasOne
         $keys = [];
         foreach ($ids as $id) {
             foreach ($attrs as $attr) {
-                $keys[] = $this->getUniqueKey($id, $attr);
+                $factory = Factory::analysis($this->drive, $attr);
+                $keys[] = $this->getUniqueKey($id, $attr, $factory->geCacheVersion());
             }
         }
 
@@ -185,7 +182,7 @@ class HasOne
             $transformsValues = $factory->transforms()->get();
             foreach ($ids as $id) {
                 //存储未转换的数据
-                $this->cacheItems[$this->getUniqueKey($id, $attr)] = $values[$id] ?? [];
+                $this->cacheItems[$this->getUniqueKey($id, $attr,$factory->geCacheVersion())] = $values[$id] ?? [];
                 $this->items[$attr][$id] = $transformsValues[$id] ?? [];
             }
 

@@ -7,6 +7,13 @@ use Asfop\HasOne\Cache;
 interface AttrInterface
 {
     public static function getNames(): string;
+
+    /**
+     * 缓存版本
+     * @return string
+     */
+    public function geCacheVersion(): string;
+
     /**
      * 需要查询的字段
      * @return array

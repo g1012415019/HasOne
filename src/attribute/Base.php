@@ -19,6 +19,7 @@ abstract class Base implements AttrInterface
      */
     private $items;
 
+    protected $cacheVersion = "v1";
 
     public abstract static function getNames(): string;
 
@@ -107,5 +108,14 @@ abstract class Base implements AttrInterface
     public function get(): array
     {
         return $this->items;
+    }
+
+    /**
+     * @inheritDoc
+     * @return string
+     */
+    public function geCacheVersion(): string
+    {
+        return $this->cacheVersion;
     }
 }
