@@ -3,7 +3,6 @@
 namespace Asfop\HasOne\contract;
 
 use Asfop\HasOne\Cache;
-use Asfop\HasOne\DB;
 
 interface AttrInterface
 {

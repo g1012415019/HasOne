@@ -4,7 +4,6 @@ namespace Asfop\HasOne\attribute;
 
 use Asfop\HasOne\Cache;
 use Asfop\HasOne\contract\AttrInterface;
-use Asfop\HasOne\DB;
 
 abstract class Base implements AttrInterface
 {
@@ -20,11 +19,6 @@ abstract class Base implements AttrInterface
      */
     private $items;
 
-    /**
-     * 缓存操作类
-     * @var Cache
-     */
-    private $cache;
 
     public abstract static function getNames(): string;
 
