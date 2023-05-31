@@ -192,6 +192,10 @@ class HasOne
         }
     }
 
+    /**
+     * 将db中的数据写入缓存中
+     * @return void
+     */
     private function setDataListToCache()
     {
         if (empty($this->cacheItems)) {
@@ -200,4 +204,24 @@ class HasOne
         $this->cache->putMany($this->cacheItems, $this->cacheExpire + mt_rand(1, 10 * 60));
     }
 
+    /**
+     * @param $ids
+     * @param array $attrs
+     * @return void
+     */
+    private function transforms($ids, array $attrs = [])
+    {
+        $list = [];
+        foreach ($ids as $index => $id) {
+            foreach ($attrs as $index => $attr) {
+                $list[$id][$attr] = $this->items[$attr][$id];
+            }
+
+        }
+
+        $this->items = $list;
+        if (!empty($list)) {
+            unset($list);
+        }
+    }
 }
