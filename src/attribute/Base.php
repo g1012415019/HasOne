@@ -6,7 +6,7 @@ use Asfop\HasOne\Cache;
 use Asfop\HasOne\contract\AttrInterface;
 use Asfop\HasOne\DB;
 
-class Base implements AttrInterface
+abstract class Base implements AttrInterface
 {
     /**
      * 需要查询的数据
@@ -21,32 +21,32 @@ class Base implements AttrInterface
     private $items;
 
     /**
-     * 数据库操作类
-     * @var DB
-     */
-    private $db;
-    /**
      * 缓存操作类
      * @var Cache
      */
     private $cache;
 
+    public abstract static function getNames(): string;
+
     /**
-     * 属性值
-     * @return string
+     * @inheritDoc
      */
-    public static function getNames(): string
-    {
-        return "info";
-    }
+    public abstract function getInfoByIds(): array;
+
+    /**
+     * 需要查询的字段
+     * @return mixed
+     */
+    public abstract function getField(): array;
 
     /**
      * 设置数据
-     * @param mixed $items
+     * @param array $items
      */
-    public function setItems($items)
+    public function setItems(array $items)
     {
         $this->items = $items;
+        return $this;
     }
 
     /**
@@ -58,19 +58,13 @@ class Base implements AttrInterface
     }
 
     /**
-     * @param mixed $ids
+     * @param $ids
+     * @return $this
      */
     public function setIds($ids)
     {
         $this->ids = $ids;
-    }
-
-    /**
-     * @param mixed $db
-     */
-    public function setDb($db)
-    {
-        $this->db = $db;
+        return $this;
     }
 
     /**
@@ -79,26 +73,6 @@ class Base implements AttrInterface
     public function getCache()
     {
         return $this->cache;
-    }
-
-    /**
-     * 需要查询的字段
-     * @return mixed
-     */
-    public function getField(): array
-    {
-        return [
-            "*"
-        ];
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getInfoByIds(): AttrInterface
-    {
-        $this->items = $this->db->get('member', ['*'], "id", $this->getIds());
-        return $this;
     }
 
     /**
@@ -119,12 +93,7 @@ class Base implements AttrInterface
             return [];
         }
 
-        $item = [];
-        $item['id'] = $data['id'];
-        $item['nick'] = $data['nick'];
-        $item['mobile'] = $data['mobile'];
-        $item['password'] = $data['password'];
-        return $item;
+        return $data;
     }
 
     public function transforms(): AttrInterface
@@ -141,7 +110,7 @@ class Base implements AttrInterface
      * 获取全部的数据
      * @return array
      */
-    public function get()
+    public function get(): array
     {
         return $this->items;
     }

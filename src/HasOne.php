@@ -1,27 +1,62 @@
 <?php
 
 namespace Asfop\HasOne;
+
+use Asfop\HasOne\attribute\Drive;
+
 class HasOne
 {
     /**
-     * 这里只能改版本号
-     * @var string
+     * 不可以改
      */
-    protected $prefix = 'i:f:user:v1:_';
-
-    protected $baseExpire = 86400;
-
-    private $cache;
-    private $db;
+    const CACHE_KEY = "i:f:%s:%s:_";
 
     /**
-     * @param $cache
-     * @param $db
+     * 缓存版本号，调整这个版本号后，所有属性的查询都会重新走db
      */
-    public function __construct($cache, $db)
+    const CACHE_KEY_VERSION = "v1";
+
+    protected $cacheExpire = 86400;
+
+    protected $name;
+
+    /**
+     * @var array
+     */
+    protected $items = [];
+
+    /**
+     * @var array
+     */
+    protected $queryItems = [];
+
+    protected $cacheItems = [];
+
+    /**
+     * @var Cache
+     */
+    private $cache;
+    private $drive;
+
+    /**
+     * @param Cache $cache 缓存类
+     * @param Drive $drive 属性映射配置
+     * @param string $name 缓存前缀标识
+     */
+    public function __construct($cache, $drive, $name = 'has_one')
     {
         $this->cache = $cache;
-        $this->db = $db;
+        $this->drive = $drive;
+        $this->name = $name;
+
+    }
+
+    /**
+     * @return string
+     */
+    private function getCacheKey(): string
+    {
+        return sprintf(self::CACHE_KEY, $this->name, self::CACHE_KEY_VERSION);
     }
 
     /**
@@ -29,11 +64,10 @@ class HasOne
      * @param $key
      * @return string
      */
-    private function getUnique($id, $key): string
+    private function getUniqueKey($id, $key): string
     {
-        return $this->prefix . "{$id}:_" . $key;
+        return $this->getCacheKey() . "{$id}:_" . $key;
     }
-
 
     /**
      * 获取多个信息
@@ -43,12 +77,21 @@ class HasOne
      */
     public function getInfoList($ids, array $attrs = []): array
     {
+
+        $this->items = [];
+        $this->queryItems = [];
+        $this->cacheItems = [];
+
         //先从缓存中获取数据
-        list($dataList, $dbDataList) = $this->getFromByCache($ids, $attrs);
+        $this->getFromByCache($ids, $attrs);
 
-        list($dataList) = $this->getFromByDB($dbDataList, $dataList);
+        //从db中获取数据
+        $this->getFromByDB();
 
-        return $dataList;
+        //将db中的数据写入缓存中
+        $this->setDataListToCache();
+
+        return $this->items;
     }
 
     /**
@@ -70,27 +113,31 @@ class HasOne
     }
 
 
-    private function getFromByCache(array $ids = [], array $attrs = []): array
+    /**
+     * @param array $ids
+     * @param array $attrs
+     * @return void
+     */
+    private function getFromByCache(array $ids = [], array $attrs = [])
     {
-        $dataList = [];
         $keys = [];
         foreach ($ids as $id) {
             foreach ($attrs as $attr) {
-                $keys[] = $this->getUnique($id, $attr);
+                $keys[] = $this->getUniqueKey($id, $attr);
             }
         }
 
+        //从缓存中获取数据
         $list = $this->cache->many($keys);
 
         $cacheDataList = [];
-        $dbDataList = [];
         foreach ($list as $index => $item) {
             //i:f:user:v1:_用户id:_user
             list(, $id, $attr) = explode(":_", $index);
             // attr =>[id1,id2,id3]
             //需要走db
             if (is_null($item)) {
-                $dbDataList[$attr][] = $id;
+                $this->queryItems[$attr][] = $id;
                 continue;
             }
             //从缓存中读取的
@@ -100,50 +147,45 @@ class HasOne
         //处理缓存中的数据
         foreach ($cacheDataList as $attr => $attrItems) {
             foreach ($attrItems as $id => $value) {
-                $factory = Factory::analysis($attr);
+                $factory = Factory::analysis($this->drive, $attr);
                 $factory->setItems([$id => $value]);
                 $value = $factory->transforms()->first()->get();
-                $dataList[$attr][$id] = $value;
+                $this->items[$attr][$id] = $value;
             }
         }
 
-        return [
-            $dataList,
-            $dbDataList,
-        ];
+        if (!empty($cacheDataList)) {
+            unset($list);
+            unset($cacheDataList);
+        }
     }
 
-    private function getFromByDB(array $dbDataList, $dataList): array
+    /**
+     * @return void
+     */
+    private function getFromByDB()
     {
-        $putCacheDataList = [];
         //从db中获取数据
-        foreach ($dbDataList as $attr => $ids) {
-            $factory = Factory::analysis($attr);
-            $factory->setIds($ids);
-            $factory->setDb($this->db);
-            $factory->getInfoByIds();
-            $values = $factory->get();
+        foreach ($this->queryItems as $attr => $ids) {
+
+            $factory = Factory::analysis($this->drive, $attr);
+            $values = $factory->setIds($ids)
+                ->setItems($factory->getInfoByIds())
+                ->get();
+            //获取转换后的
+            $transformsValues = $factory->transforms()->get();
             foreach ($ids as $id) {
-                $dataList[$attr][$id] = $values[$id] ?? [];
                 //存储未转换的数据
-                $putCacheDataList[$this->getUnique($id, $attr)] = $dataList[$attr][$id];
-                //获取转换后的
-                $factory->transforms();
-                $values = $factory->get();
-                $dataList[$attr][$id] = $values[$id] ?? [];
+                $this->cacheItems[$this->getUniqueKey($id, $attr)] = $values[$id] ?? [];
+                $this->items[$attr][$id] = $transformsValues[$id] ?? [];
             }
 
         }
-
-        if (!empty($putCacheDataList)) {
-            $this->putAttrCache($putCacheDataList);
-        }
-        return [$dataList];
     }
 
-    private function putAttrCache($putCacheDataList)
+    private function setDataListToCache()
     {
-        $this->cache->putMany($putCacheDataList, $this->baseExpire + mt_rand(1, 2 * 60));
+        $this->cache->putMany($this->cacheItems, $this->cacheExpire + mt_rand(1, 10 * 60));
     }
 
 }

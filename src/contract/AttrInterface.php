@@ -17,7 +17,7 @@ interface AttrInterface
     /**
      * 更加多个id查询数据
      */
-    public function getInfoByIds(): AttrInterface;
+    public function getInfoByIds(): array;
 
     /**
      * 获取第一条数据

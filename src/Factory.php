@@ -2,24 +2,24 @@
 
 namespace Asfop\HasOne;
 
-use Asfop\HasOne\attribute\Config;
-use Asfop\HasOne\attribute\Info;
-use Asfop\HasOne\attribute\Info2;
-use Asfop\HasOne\contract\UserInterface;
+
+use Asfop\HasOne\attribute\Drive;
+use Asfop\HasOne\contract\AttrInterface;
 use InvalidArgumentException;
 
 class Factory
 {
     /**
-     * @param $attr
-     * @return UserInterface
+     * @param Drive $drive 属性映射配置
+     * @param string $attr
+     * @return AttrInterface
      */
-    public static function analysis($attr)
+    public static function analysis($drive, $attr)
     {
         /**
-         * @var UserInterface $class
+         * @var AttrInterface $class
          */
-        $class = Config::getConfigs()[$attr] ?? null;
+        $class = $drive->config()[$attr] ?? null;
 
         if (is_null($class)) {
             throw new InvalidArgumentException(
