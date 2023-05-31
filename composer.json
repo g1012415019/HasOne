@@ -1,9 +1,9 @@
 {
     "name": "asfop/hasone",
-    "description": "无",
+    "description": "在一对一关联情况下的数据缓存的一种尝试",
     "license": "MIT",
     "keywords": [
-        "php"
+        "php","hasone"
     ],
     "authors": [
         {
