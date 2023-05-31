@@ -52,7 +52,7 @@ abstract class Base implements AttrInterface
     /**
      * @return array
      */
-    private function getIds()
+    public function getIds()
     {
         return $this->ids;
     }
@@ -100,7 +100,7 @@ abstract class Base implements AttrInterface
     {
         $list = [];
         foreach ($this->items as $id => $item) {
-            $list[$item["id"] ?? $id] = $this->transform($item);
+            $list[$id] = $this->transform($item);
         }
         $this->items = $list;
         return $this;

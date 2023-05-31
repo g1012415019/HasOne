@@ -48,7 +48,6 @@ class HasOne
         $this->cache = $cache;
         $this->drive = $drive;
         $this->name = $name;
-
     }
 
     /**
@@ -112,6 +111,16 @@ class HasOne
         return $dataList;
     }
 
+    /**
+     * 清除缓存
+     * @param int $id
+     * @param $attr
+     * @return void
+     */
+    public function forgetCache(int $id, $attr)
+    {
+        $this->cache->forget($this->getUniqueKey($id, $attr));
+    }
 
     /**
      * @param array $ids
@@ -185,6 +194,9 @@ class HasOne
 
     private function setDataListToCache()
     {
+        if (empty($this->cacheItems)) {
+            return;
+        }
         $this->cache->putMany($this->cacheItems, $this->cacheExpire + mt_rand(1, 10 * 60));
     }
 
