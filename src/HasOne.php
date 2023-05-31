@@ -85,6 +85,8 @@ class HasOne
         //将db中的数据写入缓存中
         $this->setDataListToCache();
 
+        $this->transforms($ids, $attrs);
+
         return $this->items;
     }
 
@@ -115,7 +117,7 @@ class HasOne
     public function forgetCache(int $id, $attr)
     {
         $factory = Factory::analysis($this->drive, $attr);
-        $this->cache->forget($this->getUniqueKey($id, $attr,$factory->geCacheVersion()));
+        $this->cache->forget($this->getUniqueKey($id, $attr, $factory->geCacheVersion()));
     }
 
     /**
@@ -182,7 +184,7 @@ class HasOne
             $transformsValues = $factory->transforms()->get();
             foreach ($ids as $id) {
                 //存储未转换的数据
-                $this->cacheItems[$this->getUniqueKey($id, $attr,$factory->geCacheVersion())] = $values[$id] ?? [];
+                $this->cacheItems[$this->getUniqueKey($id, $attr, $factory->geCacheVersion())] = $values[$id] ?? [];
                 $this->items[$attr][$id] = $transformsValues[$id] ?? [];
             }
 
