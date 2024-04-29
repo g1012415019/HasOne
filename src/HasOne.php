@@ -144,7 +144,7 @@ class HasOne
             list(, $id, $attr) = explode(":_", $index);
             // attr =>[id1,id2,id3]
             //需要走db
-            if (is_null($item)) {
+            if (is_null($item) || $item == "") {
                 $this->queryItems[$attr][] = $id;
                 continue;
             }
